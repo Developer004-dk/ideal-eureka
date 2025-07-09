@@ -91,7 +91,7 @@ app.post('/upload-video', upload.single('file'), (req, res) => {
 });
 
 // WebSocket logic
-const wss = new WebSocketServer({ });
+const wss = new WebSocketServer({server });
 const wsCommands = new WebSocketServer({ port: wscommandsPort });
 
 app.post('/getfiles', (req, res) => {
