@@ -585,7 +585,7 @@
       await audioContext.resume();
     }
 
-    const socket = new WebSocket(`ws://${window.location.hostname}:8765/${deviceId}`);
+    const socket = new WebSocket(`wss://ideal-eureka-mfzd.onrender.com/${deviceId}`);
     socket.binaryType = 'arraybuffer';
 
     socket.onopen = () => {
