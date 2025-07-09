@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="0093777f-d218-41bf-b369-1bc751628667" name="webaudio">
+        <fileTransfer rootFolder="/var/www/webInterface" accessType="SFTP" host="69.62.119.150" port="22" sshConfigId="f4d24fec-3beb-4b57-a581-03a17d16f664" sshConfig="root@69.62.119.150:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

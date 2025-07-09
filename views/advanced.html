@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Streaming Admin Panel</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+</head>
+<body>
+<div id="sidebar" class="p-3">
+  <h4 class="text-center mb-4">Audio Admin</h4>
+  <nav class="nav flex-column">
+    <label for="device-select" class="form-label"><span data-translate="selectDevice">Select Device</span></label>
+    <select class="form-select" id="device-select">
+      <option disabled selected>Select a device</option>
+    </select>
+    <br>
+    <a class="nav-link text-white active"  data-bs-toggle="tab" href="#dashboard">
+      <i class="fas fa-tachometer-alt me-2"></i><span data-translate="dashboard">Dashboard</span>
+    </a>
+    <a class="nav-link text-white" data-bs-toggle="tab" href="#devices">
+      <i class="fas fa-microphone me-2"></i><span data-translate="devices">Devices</span>
+    </a>
+    <a class="nav-link text-white" data-bs-toggle="tab" href="#recordings">
+      <i class="fas fa-file-audio me-2"></i><span data-translate="recordings">Recordings</span>
+    </a>
+    <a class="nav-link text-white" data-bs-toggle="tab" href="#settings">
+      <i class="fas fa-cog me-2"></i><span data-translate="settings">Settings</span>
+    </a>
+  </nav>
+</div>
+
+<div class="main-content">
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="dashboard">
+      <div class="row g-4">
+        <div class="col-12">
+          <h3 class="mb-4"><i class="fas fa-tachometer-alt me-2"></i>
+            <span data-translate="systemView">
+              System Overview
+            </span>
+          </h3>
+        </div>
+
+        <!-- System Status Card -->
+        <div class="col-md-6">
+          <div class="card system-status-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fa-brands fa-raspberry-pi"></i>&nbsp;&nbsp;<span data-translate="deviceStatus">Device Status</span></h5>
+            </div>
+            <div class="card-body">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                  <span data-translate="currentDevice">Current Device:</span>
+                  <span id="device-id" class="badge bg-success">---</span>
+                </li>
+                <li class="list-group-item">
+                  <span data-translate="recordingStatus">Recording Status:</span>
+                  <span id="is_recording" class="badge bg-success">...</span>
+                </li>
+                <li class="list-group-item">
+                  <span data-translate="elapsedTime">Elapsed Time:</span>
+                  <span id="elapsed_time" class="badge bg-success">...</span>
+                </li>
+                <li class="list-group-item">
+                  <div class="progress w-100">
+                    <div id="recording-progress" class="progress-bar" role="progressbar" style="width: 0%;">
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Health -->
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-server me-2"></i><span data-translate="SystemHealth">System Health</span></h5>
+            </div>
+            <div class="card-body">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                  <span data-translate="cpuUsage">CPU Usage:</span>
+                  <span id="cpu-usage" class="badge bg-primary">...</span>
+                </li>
+                <li class="list-group-item">
+                  <span data-translate="memoryUsage">Memory Usage:</span>
+                  <span id="mem-usage" class="badge bg-primary">...</span>
+                </li>
+                <li class="list-group-item">
+                  <span data-translate="cpuTemp">CPU Temperature:</span>
+                  <span id="cpu_temp" class="badge bg-primary">...</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0" ><i class="fa-solid fa-microphone-lines"></i>&nbsp;&nbsp;<span data-translate="recordingControls">Recording Controls</span></h5>
+            </div>
+            <div class="card-body">
+              <div class="d-flex gap-2 mb-3">
+                <button class="btn btn-outline-success w-30" id="start-record">
+                  <i class="fa-solid fa-play me-2"></i><span data-translate="start">Start</span>
+                </button>
+                <button class="btn btn-outline-danger w-30 " id="stop-record" disabled>
+                  <i class="fas fa-stop me-2"></i><span data-translate="stop">Stop</span>
+                </button>
+                <button class="btn btn-outline-info w-30 " id="pause-record">
+                  <i class="fa-solid fa-floppy-disk"></i>&nbsp; <span data-translate="pause">Pause and save</span>
+                </button>
+                <button class="btn btn-outline-info w-30 " id="stop-and-save">
+                  <i class="fa-solid fa-floppy-disk"></i>&nbsp; <span data-translate="stopAndSave">stop and save</span>
+                </button>
+              </div>
+              <div class="mb-3">
+                <label for="duration-select" class="form-label" data-translate="recDuration">Recording Duration</label>
+                <select class="form-select" id="duration-select">
+                  <option value="60"  data-translate="tenMinute">1 min</option>
+                  <option value="600" selected data-translate="tenMinute">10 min</option>
+                  <option value="1800" data-translate="thirtyMinute">30 min</option>
+                  <option value="3600" data-translate="oneHour">1 hour</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0" ><i class="fa-solid fa-wave-square"></i>&nbsp;&nbsp;<span data-translate="equalizer">Equalizer</span></h5>
+              </div>
+              <div class="card-body">
+                <div class="eq-live">
+                  <div class="eq-slider" data-value="0" style="color: #000000">
+                    <input type="range" id="liveEqBass" min="-15" max="15" step="1" value="0">
+                    <label for="liveEqBass" data-translate="bass">Bass</label>
+                  </div>
+                  <div class="eq-slider" data-value="0" style="color: #000000">
+                    <input type="range" id="liveEqMid" min="-15" max="15" step="1" value="0">
+                    <label for="liveEqMid" data-translate="mid">Mid</label>
+                  </div>
+                  <div class="eq-slider" data-value="0" style="color: #000000">
+                    <input type="range" id="liveEqTreble" min="-15" max="15" step="1" value="0">
+                    <label for="liveEqTreble" data-translate="treble">Treble</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="devices">
+      <div class="row g-4">
+        <div class="col-12">
+          <h3 class="mb-4"><i class="fas fa-microphone me-2"></i>Device Management</h3>
+        </div>
+
+        <!-- Device List -->
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">Connected Devices</h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0" id="device-table">
+                  <thead class="table-light">
+                  <tr>
+                    <th>Devices</th>
+                    <th>Recording</th>
+                    <th>Playing</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr id="device-none">
+                    <td colspan="3" class="text-center">No devices connected</td>
+                  </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Device Controls -->
+        <div class="col-md-4">
+<!--          <div class="card">-->
+<!--            <div class="card-header">-->
+<!--              <h5 class="mb-0">Device Controls</h5>-->
+<!--            </div>-->
+<!--            <div class="card-body">-->
+<!--              <div class="mb-3">-->
+<!--                <label for="device-select" class="form-label">Select Device</label>-->
+<!--                <select class="form-select" id="device-select">-->
+<!--                  <option disabled selected>Select a device</option>-->
+<!--                </select>-->
+<!--              </div>-->
+<!--              <div class="d-flex gap-2 mb-3">-->
+<!--                <button class="btn btn-success w-50" id="start-record">-->
+<!--                  <i class="fas fa-circle-record me-2"></i>Start-->
+<!--                </button>-->
+<!--                <button class="btn btn-danger w-50" id="stop-record" disabled>-->
+<!--                  <i class="fas fa-stop me-2"></i>Stop-->
+<!--                </button>-->
+<!--              </div>-->
+<!--              <div class="mb-3">-->
+<!--                <label for="duration-select" class="form-label">Recording Duration</label>-->
+<!--                <select class="form-select" id="duration-select">-->
+<!--                  <option value="600">10 min</option>-->
+<!--                  <option value="1800">30 min</option>-->
+<!--                  <option value="3600">1 hour</option>-->
+<!--                </select>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane fade" id="recordings">
+      <div class="row">
+
+        <!-- Recordings List -->
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">Audio Recordings</h5>
+            </div>
+            <div class="card-body">
+              <div class="p-2">
+                <label for="filterText" data-translate="nameFilter">Filter by FileName</label>
+                <input type="text" id="filterText" placeholder="Filter by name..." class="form-control mb-2">
+                <label for="dateFrom" data-translate="dateFrom">Date From:</label>
+                <input type="date" id="dateFrom" class="form-control mb-2">
+                <label for="dateTo" data-translate="dateTo">Date To:</label>
+                <input type="date" id="dateTo" class="form-control mb-2">
+                <button class="btn btn-danger w-100 mb-2" data-translate="deleteSelected" onclick="deleteSelectedFiles()">Delete Selected</button>
+                <button class="btn btn-primary w-100" data-translate="applyFilters" onclick="loadFiles()">Apply Filters</button>
+              </div>
+              <table id="recordingsTable" class="table table-striped table-bordered mb-0" style="width:100%">
+                <thead>
+                <tr>
+                  <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+                  <th>Filename</th>
+                  <th>Date</th>
+                  <th>Size</th>
+                  <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody id="filesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visualization -->
+      </div>
+    </div>
+    <div class="tab-pane fade" id="settings">
+      <div class="row">
+        <div class="col-12">
+          <h3 class="mb-4"><i class="fas fa-cog me-2"></i><span data-translate="systemSettings">System Settings</span></h3>
+
+          <!-- Dark Mode Card -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-moon me-2"></i><span data-translate="аppearance">Appearance</span></h5>
+            </div>
+            <div class="card-body">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="darkModeToggle">
+                <label class="form-check-label" data-translate="theme" for="darkModeToggle">Dark Mode</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Language Selector Card -->
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-language me-2"></i><span data-translate="languageSettings">Language Settings</span></h5>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <select class="form-select" id="languageSelect">
+                  <option value="en"><span data-translate="english">English</span></option>
+                  <option value="ru"><span data-translate="russian">Russian</span></option>
+                  <option value="am"><span data-translate="armenian">Armenian</span></option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+<div class="modal fade" id="audioPlayerModal" tabindex="-1" aria-labelledby="audioPlayerLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="audioPlayerLabel">Audio Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <audio id="modalAudioPlayer" controls style="width: 100%;">
+          <source id="audioSource" src="" type="audio/wav">
+          Your browser does not support the audio element.
+        </audio>
+
+        <hr>
+        <div>
+          <label>Bass</label>
+          <input type="range" min="-30" max="30" value="0" class="form-range" id="eqBass">
+          <label>Mid</label>
+          <input type="range" min="-30" max="30" value="0" class="form-range" id="eqMid">
+          <label>Treble</label>
+          <input type="range" min="-30" max="30" value="0" class="form-range" id="eqTreble">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Original JavaScript preserved -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/translations.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+
+
+
+  document.getElementById('liveEqBass').oninput = e => {
+    bassFilter.gain.value = e.target.value;
+    localStorage.setItem('liveEqBass', e.target.value);
+  };
+  document.getElementById('liveEqMid').oninput = e => {
+    midFilter.gain.value = e.target.value;
+    localStorage.setItem('liveEqMid', e.target.value);
+  };
+  document.getElementById('liveEqTreble').oninput = e => {
+    trebleFilter.gain.value = e.target.value;
+    localStorage.setItem('liveEqTreble', e.target.value);
+  };
+  // Add dynamic value updates
+  document.querySelectorAll('.eq-slider input').forEach(slider => {
+    const container = slider.closest('.eq-slider');
+    slider.addEventListener('input', () => {
+      container.setAttribute('data-value', slider.value);
+    });
+  });
+  let audioCtx, sourceNode, bassEQ, midEQ, trebleEQ;
+  let bassFilter, midFilter, trebleFilter;
+  let eqInitialized = false;
+
+  function createLiveEQ(audioContext) {
+    bassFilter = audioContext.createBiquadFilter();
+    bassFilter.type = 'lowshelf';
+    bassFilter.frequency.value = 100;
+    bassFilter.gain.value = parseFloat(localStorage.getItem('liveEqBass')) || 0;
+
+    midFilter = audioContext.createBiquadFilter();
+    midFilter.type = 'peaking';
+    midFilter.frequency.value = 1000;
+    midFilter.Q.value = 1;
+    midFilter.gain.value = parseFloat(localStorage.getItem('liveEqMid')) || 0;
+
+    trebleFilter = audioContext.createBiquadFilter();
+    trebleFilter.type = 'highshelf';
+    trebleFilter.frequency.value = 3000;
+    trebleFilter.gain.value = parseFloat(localStorage.getItem('liveEqTreble')) || 0;
+
+    // Bind only live EQ sliders here
+    document.getElementById('liveEqBass').value = bassFilter.gain.value;
+    document.getElementById('liveEqMid').value = midFilter.gain.value;
+    document.getElementById('liveEqTreble').value = trebleFilter.gain.value;
+
+    eqInitialized = true;
+  }
+  function setupEqualizer(audioElement) {
+    if (audioCtx) {
+      audioCtx.close(); // reset if reusing
+    }
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    sourceNode = audioCtx.createMediaElementSource(audioElement);
+
+    // Create EQ bands
+    bassEQ = audioCtx.createBiquadFilter();
+    bassEQ.type = 'lowshelf';
+    bassEQ.frequency.value = 100;
+
+    midEQ = audioCtx.createBiquadFilter();
+    midEQ.type = 'peaking';
+    midEQ.frequency.value = 1000;
+    midEQ.Q.value = 1;
+
+    trebleEQ = audioCtx.createBiquadFilter();
+    trebleEQ.type = 'highshelf';
+    trebleEQ.frequency.value = 3000;
+
+    // Connect filters
+    sourceNode
+            .connect(bassEQ)
+            .connect(midEQ)
+            .connect(trebleEQ)
+            .connect(audioCtx.destination);
+
+    // Bind sliders
+    document.getElementById('eqBass').oninput = e => {
+      bassEQ.gain.value = e.target.value;
+    };
+    document.getElementById('eqMid').oninput = e => {
+      midEQ.gain.value = e.target.value;
+    };
+    document.getElementById('eqTreble').oninput = e => {
+      trebleEQ.gain.value = e.target.value;
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    flatpickr("#dateFrom", { dateFormat: "Y-m-d" });
+    flatpickr("#dateTo", { dateFormat: "Y-m-d" });
+  });
+
+  function loadFiles() {
+    const filter = document.getElementById('filterText').value;
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
+
+    fetch('/getfiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filter, dateFrom, dateTo })
+    })
+            .then(res => res.json())
+            .then(data => SortAjax(data))
+            .catch(err => console.error(err));
+  }
+
+  const darkModeToggle = document.getElementById('darkModeToggle');
+
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.body.setAttribute('data-theme', savedTheme);
+  darkModeToggle.checked = savedTheme === 'dark';
+
+  darkModeToggle.addEventListener('change', (e) => {
+    const theme = e.target.checked ? 'dark' : 'light';
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  });
+
+  function toggleAll(source) {
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+  }
+
+  function deleteSelectedFiles() {
+    const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+    const filesToDelete = Array.from(checkboxes).map(cb => cb.value);
+
+    if (filesToDelete.length === 0) {
+      alert("No files selected.");
+      return;
+    }
+
+    if (!confirm(`Delete ${filesToDelete.length} file(s)?`)) return;
+
+    // Send to server (you can replace this with fetch)
+    console.log("Deleting:", filesToDelete);
+
+    // Example: simulate deletion and reload
+    filesToDelete.forEach(file => {
+      // You'd send a request to delete file here
+    });
+
+    loadFiles(); // reload table after deletion
+  }
+
+  let audioContext;
+  let eqFilters;
+  let currentDeviceId = null;
+  let currentAudioSocket = null;
+  let previousStopTime = 0;
+  let previousSource = null;
+  const sampleRate = 44100;
+  const overlapTime = 0.00;
+
+
+  /*new test */
+
+  let analyser;
+  let visualizationRunning = false;
+  // const canvas = document.getElementById('visualizer');
+  // const canvasCtx = canvas.getContext('2d');
+
+
+
+
+  /*new test */
+
+
+  // Fetch device list from backend
+  async function updateDeviceList() {
+    try {
+      const res = await fetch('/devices');
+      const devices = await res.json();
+      const select = document.getElementById('device-select');
+      select.innerHTML = '';
+      const noneOption = document.createElement('option');
+      noneOption.value = '';
+      noneOption.setAttribute('data-translate', 'none');
+      noneOption.textContent = 'None';
+      select.appendChild(noneOption);
+      let deviceTable = document.getElementById('device-table');
+      devices.forEach(device => {
+        let newRow = document.createElement('tr')
+        newRow.setAttribute('id','device-' + device)
+        let name = document.createElement('th')
+        name.innerText = device
+        let record = document.createElement('th')
+        record.innerHTML = `
+
+ <div class="record-container">
+      <div class="recording-circle"></div>
+      <div class="recording-text">Recording</div>
+    </div>
+
+                `
+        let play = document.createElement('th')
+        newRow.appendChild(name)
+        newRow.appendChild(record)
+        newRow.appendChild(play)
+        deviceTable.appendChild(newRow)
+        const opt = document.createElement('option');
+        opt.value = device;
+        opt.textContent = device;
+        select.appendChild(opt);
+      });
+
+      if (devices.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = 'No devices connected';
+        opt.disabled = true;
+        select.appendChild(opt);
+      }
+    } catch (e) {
+      console.error('Failed to load device list', e);
+    }
+  }
+
+  // Connect to selected device
+  async function connectToDevice(deviceId) {
+    if (currentAudioSocket) {
+      currentAudioSocket.close();
+      currentAudioSocket = null;
+    }
+
+    previousStopTime = 0;
+    if (previousSource) {
+      try { previousSource.stop(); } catch {}
+      previousSource = null;
+    }
+    if (!deviceId) {
+      console.log("Playback stopped");
+      visualizationRunning = false;
+      currentDeviceId = null;
+      return;
+    }
+
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    } else if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+
+    const socket = new WebSocket(`ws://${window.location.hostname}:8765/${deviceId}`);
+    socket.binaryType = 'arraybuffer';
+
+    socket.onopen = () => {
+      console.log(`Connected to device: ${deviceId}`);
+      currentAudioSocket = socket;
+      currentDeviceId = deviceId;
+
+      // optional silent warm-up
+      const silentBuffer = audioContext.createBuffer(1, 1024, sampleRate);
+      const silentSource = audioContext.createBufferSource();
+      silentSource.buffer = silentBuffer;
+      silentSource.connect(audioContext.destination);
+      silentSource.start();
+    };
+
+    let audioTimeout = setTimeout(() => {
+      console.log("Waiting for audio...");
+    }, 500);
+
+    socket.onmessage = function (event) {
+      clearTimeout(audioTimeout);
+      if (event.data instanceof ArrayBuffer && deviceId === currentDeviceId) {
+        processAudioData(event.data);
+      }else {
+        let data = JSON.parse(event.data)
+        if (data.is_recording ===true ){
+          document.getElementById('start-record').setAttribute('disabled', true);
+          document.getElementById('stop-record').removeAttribute('disabled');
+        }
+        document.getElementById('duration-select').value = data.recording_duration;
+
+        document.getElementById('cpu_temp').innerHTML = data.cpu_temp + '°C'
+        document.getElementById('cpu-usage').innerHTML = data.cpu_usage + '%'
+        document.getElementById('mem-usage').innerHTML = data.memory_usage + '%'
+        document.getElementById('device-id').innerHTML = data.device_id
+        document.getElementById('is_recording').innerHTML = data.is_recording
+        document.getElementById('elapsed_time').innerHTML = data.elapsed_time+ '/'+ data.recording_duration
+        updateProgress(data)
+      }
+
+    };
+
+    socket.onerror = e => console.error("WebSocket error:", e);
+    socket.onclose = () => console.log(`WebSocket for ${deviceId} closed`);
+  }
+
+  function updateProgress(data) {
+    const percent = (data.elapsed_time / data.recording_duration) * 100;
+    const progressBar = document.getElementById('recording-progress');
+    progressBar.style.width = `${percent}%`;
+    progressBar.setAttribute('aria-valuenow', data.elapsed_time);
+    progressBar.setAttribute('aria-valuemax', data.recording_duration);
+  }
+
+  // function processAudioData(audioData) {
+  //   const inputBuffer = new Int16Array(audioData);
+  //   const float32Buffer = new Float32Array(inputBuffer.length);
+  //   for (let i = 0; i < inputBuffer.length; i++) {
+  //     float32Buffer[i] = inputBuffer[i] / 32768;
+  //   }
+  //
+  //   const audioBuffer = audioContext.createBuffer(1, float32Buffer.length, sampleRate);
+  //   audioBuffer.copyToChannel(float32Buffer, 0);
+  //
+  //   const source = audioContext.createBufferSource();
+  //   source.buffer = audioBuffer;
+  //
+  //   const startTime = Math.max(previousStopTime - overlapTime, audioContext.currentTime);
+  //   source.connect(audioContext.destination); // Direct connection
+  //
+  //   source.start(startTime);
+  //
+  //   const stopTime = startTime + audioBuffer.duration;
+  //   if (previousSource) {
+  //     previousSource.stop(startTime);
+  //   }
+  //
+  //   previousStopTime = stopTime;
+  //   previousSource = source;
+  // }
+
+  // // Process incoming audio data
+  // function processAudioData(audioData) {
+  //   const inputBuffer = new Int16Array(audioData);
+  //   const float32Buffer = new Float32Array(inputBuffer.length);
+  //   for (let i = 0; i < inputBuffer.length; i++) {
+  //     float32Buffer[i] = inputBuffer[i] / 32768;
+  //   }
+  //
+  //   const audioBuffer = audioContext.createBuffer(1, float32Buffer.length, sampleRate);
+  //   audioBuffer.copyToChannel(float32Buffer, 0);
+  //
+  //   const source = audioContext.createBufferSource();
+  //   source.buffer = audioBuffer;
+  //
+  //   analyser = audioContext.createAnalyser();
+  //   analyser.fftSize = 2048;
+  //
+  //   if (!eqInitialized) {
+  //     createLiveEQ(audioContext);
+  //   }
+  //
+  //   // Connect: source → analyser → bass → mid → treble → destination
+  //   source.connect(analyser);
+  //   analyser.connect(bassFilter);
+  //   bassFilter.connect(midFilter);
+  //   midFilter.connect(trebleFilter);
+  //   trebleFilter.connect(audioContext.destination);
+  //
+  //   const startTime = Math.max(previousStopTime - overlapTime, audioContext.currentTime);
+  //   source.start(startTime);
+  //
+  //   const stopTime = startTime + audioBuffer.duration;
+  //   if (previousSource) {
+  //     previousSource.stop(startTime);
+  //   }
+  //
+  //   previousStopTime = stopTime;
+  //   previousSource = source;
+  // }
+
+  let nextStartTime = 0; // Tracks the next scheduled start time
+
+  function processAudioData(audioData) {
+    const inputBuffer = new Int16Array(audioData);
+    const float32Buffer = new Float32Array(inputBuffer.length);
+    for (let i = 0; i < inputBuffer.length; i++) {
+      float32Buffer[i] = inputBuffer[i] / 32768;
+    }
+
+    const audioBuffer = audioContext.createBuffer(1, float32Buffer.length, sampleRate);
+    audioBuffer.copyToChannel(float32Buffer, 0);
+
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+
+    if (!eqInitialized) {
+      createLiveEQ(audioContext);
+    }
+
+    source.connect(analyser);
+    analyser.connect(bassFilter);
+    bassFilter.connect(midFilter);
+    midFilter.connect(trebleFilter);
+    trebleFilter.connect(audioContext.destination);
+
+    const now = audioContext.currentTime;
+    // Ensure nextStartTime is not in the past
+    nextStartTime = Math.max(nextStartTime, now);
+
+    source.start(nextStartTime);
+
+    // Stop the previous source at the same time to avoid overlap
+    if (previousSource) {
+      previousSource.stop(nextStartTime);
+    }
+
+    // Update nextStartTime to the end of the current buffer
+    nextStartTime += audioBuffer.duration;
+
+    previousSource = source;
+  }
+
+  // Update file rows
+  async function updateFileRows() {
+    const res = await fetch('/getfiles', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'}
+    });
+    const data = await res.json();
+    if (res.status === 200) {
+      await SortAjax(data);
+    }
+  }
+
+  // Sort and display files
+  function SortAjax(data) {
+    const tbody = $('#filesBody');
+    tbody.empty();
+
+    data.forEach(file => {
+      const row = `
+      <tr>
+        <td><input type="checkbox" class="file-checkbox" value="${file.name}"></td>
+        <td>${file.name}</td>
+        <td>${file.date}</td>
+        <td>${file.size}</td>
+        <td>
+        <button class="btn btn-sm btn-primary me-1" onclick="playAudio('${file.name}')">
+    Play
+  </button>
+  <a href="/download/${encodeURIComponent(file.name)}" class="btn btn-sm btn-success me-1" download>
+    Download
+  </a>
+  <button class="btn btn-sm btn-danger" onclick="deleteSingleFile('${file.name}')">
+    Delete
+  </button>
+        </td>
+
+      </tr>
+    `;
+      tbody.append(row);
+    });
+    if ($.fn.dataTable.isDataTable('#recordingsTable')) {
+      const table = $('#recordingsTable').DataTable();
+      table.clear().destroy();
+      $('#recordingsTable tbody').empty();
+    }
+      $('#recordingsTable').DataTable({
+        pageLength: 10,
+        responsive: true,
+        ordering: false,
+        lengthChange: false,
+        language: {
+          search: "Search:",
+          emptyTable: "No recordings found."
+        }
+      });
+  }
+
+  // Handle device change
+  document.getElementById('device-select').addEventListener('change', function () {
+    const selectedDevice = this.value;
+    connectToDevice(selectedDevice);
+  });
+
+  document.getElementById('duration-select').addEventListener('change', function () {
+    const value = this.value;
+    localStorage.setItem('record-duration', value);
+    if (currentAudioSocket && currentAudioSocket.readyState === WebSocket.OPEN) {
+      currentAudioSocket.send(`set_duration:${value}`);
+    }
+  });
+
+  // Start recording
+  document.getElementById('start-record').addEventListener('click', function () {
+    if (currentAudioSocket && currentAudioSocket.readyState === WebSocket.OPEN) {
+      currentAudioSocket.send('start_record');
+      document.getElementById('start-record').disabled = true;
+      document.getElementById('stop-record').disabled = false;
+    }
+  });
+
+  document.getElementById('pause-record').addEventListener('click', function () {
+    if (currentAudioSocket && currentAudioSocket.readyState === WebSocket.OPEN) {
+      currentAudioSocket.send('pause_record');
+      document.getElementById('start-record').disabled = false;
+      document.getElementById('stop-record').disabled = true;
+    }
+  });
+
+  document.getElementById('stop-and-save').addEventListener('click', function () {
+    if (currentAudioSocket && currentAudioSocket.readyState === WebSocket.OPEN) {
+      currentAudioSocket.send('stop_and_save');
+      document.getElementById('start-record').disabled = false;
+      document.getElementById('stop-record').disabled = true;
+    }
+  });
+
+  // Stop recording
+  document.getElementById('stop-record').addEventListener('click', function () {
+    if (currentAudioSocket && currentAudioSocket.readyState === WebSocket.OPEN) {
+      currentAudioSocket.send('stop_record');
+      document.getElementById('start-record').disabled = false;
+      document.getElementById('stop-record').disabled = true;
+    }
+  });
+
+  function playAudio(fileName) {
+    const audioSrc = `/uploads/${encodeURIComponent(fileName)}`;
+    const audio = document.getElementById('modalAudioPlayer');
+    const source = document.getElementById('audioSource');
+
+    source.src = audioSrc;
+    audio.load();
+
+    // Ensure audio plays through equalizer
+    setupEqualizer(audio);
+
+    const modal = new bootstrap.Modal(document.getElementById('audioPlayerModal'));
+    modal.show();
+  }
+
+  (function () {
+    updateLanguage(savedLang)
+    updateFileRows();
+    updateDeviceList();
+  })();
+</script>
+</body>
+</html>

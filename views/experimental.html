@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Audio Streaming</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row g-4">
+
+        <!-- Left Column: Controls & Status -->
+        <div class="col-lg-6 d-flex flex-column gap-4">
+
+            <!-- Connected Devices Table -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <strong>Connected Devices</strong>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0" id="device-table">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Devices</th>
+                                <th>Recording</th>
+                                <th>Playing</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr id="device-none">
+                                <td>test</td>
+                                <td>test 1</td>
+                                <td>test 2</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Streaming + Recording -->
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <strong>Real-Time Streaming & Recording</strong>
+                </div>
+                <div class="card-body">
+                    <!-- Device Select -->
+                    <div class="mb-3">
+                        <label for="device-select" class="form-label">Select Device</label>
+                        <select class="form-select" id="device-select">
+                            <option disabled selected>Select a device</option>
+                        </select>
+                    </div>
+
+                    <!-- Recording Controls -->
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="ws-button btn btn-outline-success" id="start-record">Start Recording</button>
+                        <button class="ws-button btn btn-outline-danger" id="stop-record" disabled>Stop Recording</button>
+                    </div>
+                    <div class="mb-3">
+                        <label for="duration-select" class="form-label">Recording Duration</label>
+                        <select class="form-select" id="duration-select">
+                            <option class="ws-duration" value="120" selected>10 min</option>
+                            <option class="ws-duration" value="1800">30 min</option>
+                            <option class="ws-duration" value="3600">1 hour</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <strong><span id="device-id">---</span> Status</strong>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        <li class="list-group-item">CPU Usage: <span id="cpu-usage"><img width="20px" src="/img/loading.gif"></span></li>
+                        <li class="list-group-item">Memory Usage: <span id="mem-usage"><img width="20px" src="/img/loading.gif"></span></li>
+                        <li class="list-group-item">is_recording: <span id="is_recording"><img width="20px" src="/img/loading.gif"></span></li>
+                        <li class="list-group-item">recording-duration: <span id="recording_duration"><img width="20px" src="/img/loading.gif"></span></li>
+                        <li class="list-group-item">recording time: <span id="elapsed_time"><img width="20px" src="/img/loading.gif"></span></li>
+                        <li class="list-group-item">CPU temperature: <span id="cpu_temp"><img width="20px" src="/img/loading.gif"></span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Files & Visualization -->
+        <div class="col-lg-6 d-flex flex-column gap-4">
+
+            <!-- Recorded Files -->
+            <div class="card flex-grow-1">
+                <div class="card-header bg-dark text-white">
+                    <strong>Recorded Files</strong>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 230px; overflow-y: auto;">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                            <tr>
+                                <th scope="col">Filename</th>
+                            </tr>
+                            </thead>
+                            <tbody id="filesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio Visualization -->
+            <div class="card" style="width: 370px">
+                <div class="card-header bg-warning text-dark">
+                    <strong>Audio Visualization</strong>
+                </div>
+                <div class="card-body">
+                    <canvas class="visualizer" id="visualizer"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    let audioContext;
+    let currentDeviceId = null;
+    let currentAudioSocket = null;
+    let previousStopTime = 0;
+    let previousSource = null;
+    const sampleRate = 44100;
+    const overlapTime = 0.00;
+
+
+    /*new test */
+
+    let analyser;
+    let visualizationRunning = false;
+    const canvas = document.getElementById('visualizer');
+    const canvasCtx = canvas.getContext('2d');
+
+
+    function drawWaveform() {
+        if (!analyser || !visualizationRunning) return;
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteTimeDomainData(dataArray);
+
+        canvasCtx.fillStyle = '#1a1a1a';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        canvasCtx.lineWidth = 2;
+        canvasCtx.strokeStyle = '#ffc107';
+        canvasCtx.beginPath();
+
+        const sliceWidth = canvas.width * 1.0 / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = v * canvas.height / 2;
+
+            if (i === 0) {
+                canvasCtx.moveTo(x, y);
+            } else {
+                canvasCtx.lineTo(x, y);
+            }
+
+            x += sliceWidth;
+        }
+
+        canvasCtx.lineTo(canvas.width, canvas.height/2);
+        canvasCtx.stroke();
+        requestAnimationFrame(drawWaveform);
+    }
+
+    /*new test */
+
+
+    // Fetch device list from backend
+    async function updateDeviceList() {
+        try {
+            const res = await fetch('/devices');
+            const devices = await res.json();
+            const select = document.getElementById('device-select');
+            select.innerHTML = '';
+            const noneOption = document.createElement('option');
+            noneOption.value = '';
+            noneOption.textContent = 'None (stop playback)';
+            select.appendChild(noneOption);
+            let deviceTable = document.getElementById('device-table');
+            devices.forEach(device => {
+                let newRow = document.createElement('tr')
+                newRow.setAttribute('id','device-' + device)
+                let name = document.createElement('th')
+                name.innerText = device
+                let record = document.createElement('th')
+                record.innerHTML = `
+
+ <div class="record-container">
+      <div class="recording-circle"></div>
+      <div class="recording-text">Recording</div>
+    </div>
+
+                `
+                let play = document.createElement('th')
+                newRow.appendChild(name)
+                newRow.appendChild(record)
+                newRow.appendChild(play)
+                deviceTable.appendChild(newRow)
+                const opt = document.createElement('option');
+                opt.value = device;
+                opt.textContent = device;
+                select.appendChild(opt);
+            });
+
+            if (devices.length === 0) {
+                const opt = document.createElement('option');
+                opt.textContent = 'No devices connected';
+                opt.disabled = true;
+                select.appendChild(opt);
+            }
+        } catch (e) {
+            console.error('Failed to load device list', e);
+        }
+    }
+
+    // Connect to selected device
+    async function connectToDevice(deviceId) {
+        if (currentAudioSocket) {
+            currentAudioSocket.close();
+            currentAudioSocket = null;
+        }
+
+        previousStopTime = 0;
+        if (previousSource) {
+            try { previousSource.stop(); } catch {}
+            previousSource = null;
+        }
+        if (!deviceId) {
+            console.log("Playback stopped");
+            visualizationRunning = false;
+            currentDeviceId = null;
+            return;
+        }
+
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } else if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+
+        const socket = new WebSocket(`ws://${window.location.hostname}:8765/${deviceId}`);
+        socket.binaryType = 'arraybuffer';
+
+        socket.onopen = () => {
+            console.log(`Connected to device: ${deviceId}`);
+            currentAudioSocket = socket;
+            currentDeviceId = deviceId;
+
+            // optional silent warm-up
+            const silentBuffer = audioContext.createBuffer(1, 1024, sampleRate);
+            const silentSource = audioContext.createBufferSource();
+            silentSource.buffer = silentBuffer;
+            silentSource.connect(audioContext.destination);
+            silentSource.start();
+        };
+
+        let audioTimeout = setTimeout(() => {
+            console.log("Waiting for audio...");
+        }, 500);
+
+        socket.onmessage = function (event) {
+            clearTimeout(audioTimeout);
+            if (event.data instanceof ArrayBuffer && deviceId === currentDeviceId) {
+                processAudioData(event.data);
+            }else {
+                let data = JSON.parse(event.data)
+                console.log(data.cpu_temp)
+                console.log(data)
+                document.getElementById('cpu_temp').innerHTML = data.cpu_temp
+                document.getElementById('cpu-usage').innerHTML = data.cpu_usage + '%'
+                document.getElementById('mem-usage').innerHTML = data.memory_usage + '%'
+                document.getElementById('device-id').innerHTML = data.device_id
+                document.getElementById('is_recording').innerHTML = data.is_recording
+                document.getElementById('recording_duration').innerHTML = data.recording_duration
+                document.getElementById('elapsed_time').innerHTML = data.elapsed_time
+                document.getElementById('recording_duration').innerHTML = data.recording_duration
+            }
+        };
+
+        socket.onerror = e => console.error("WebSocket error:", e);
+        socket.onclose = () => console.log(`WebSocket for ${deviceId} closed`);
+    }
+
+    // Process incoming audio data
+    function processAudioData(audioData) {
+        const inputBuffer = new Int16Array(audioData);
+        const float32Buffer = new Float32Array(inputBuffer.length);
+
+        for (let i = 0; i < inputBuffer.length; i++) {
+            float32Buffer[i] = inputBuffer[i] / 32768;
+        }
+
+        const audioBuffer = audioContext.createBuffer(1, float32Buffer.length, sampleRate);
+        audioBuffer.copyToChannel(float32Buffer, 0);
+
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+
+        // Create analyser node
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+
+        const gainNode = audioContext.createGain();
+        gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+
+        // Connect nodes: source -> analyser -> gain -> destination
+        source.connect(analyser);
+        analyser.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        // Start visualization
+        if (!visualizationRunning) {
+            visualizationRunning = true;
+            drawWaveform();
+        }
+
+        const startTime = Math.max(previousStopTime - overlapTime, audioContext.currentTime);
+        source.start(startTime);
+
+        const stopTime = startTime + audioBuffer.duration;
+
+        if (previousSource) {
+            previousSource.stop(startTime);
+        }
+
+        previousStopTime = stopTime;
+        previousSource = source;
+    }
+
+    // Update file rows
+    async function updateFileRows() {
+        const res = await fetch('/getfiles', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const data = await res.json();
+        if (res.status === 200) {
+            await SortAjax(data);
+        }
+    }
+
+    // Sort and display files
+    function SortAjax(data) {
+        const tbody = document.getElementById('filesBody');
+        tbody.innerHTML = ''; // clear previous
+
+        data.forEach(function (elem) {
+            let tr = document.createElement('tr');
+            let th = document.createElement('th');
+            let filename = document.createElement('a');
+            filename.setAttribute('href', `/uploads/${elem}`);
+            filename.setAttribute('target', '_blank');
+            filename.innerHTML = elem;
+            th.appendChild(filename);
+            tr.appendChild(th);
+            tbody.appendChild(tr);
+        });
+
+        tbody.style.height = '500px';
+        tbody.style.width = '100%   ';
+        tbody.style.overflowY = 'scroll';
+        tbody.style.position = 'absolute';
+    }
+
+    // Handle device change
+    document.getElementById('device-select').addEventListener('change', function () {
+        const selectedDevice = this.value;
+        connectToDevice(selectedDevice);
+    });
+
+    // Handle duration change
+    document.getElementById('duration-select').addEventListener('change', function () {
+        const value = this.value;
+        localStorage.setItem('record-duration', value);
+        if (currentAudioSocket && currentAudioSocket.readyState === WebSocket.OPEN) {
+            currentAudioSocket.send(`set_duration:${value}`);
+        }
+    });
+
+    // Start recording
+    document.getElementById('start-record').addEventListener('click', function () {
+        if (currentAudioSocket && currentAudioSocket.readyState === WebSocket.OPEN) {
+            currentAudioSocket.send('start_record');
+            document.getElementById('start-record').disabled = true;
+            document.getElementById('stop-record').disabled = false;
+        }
+    });
+
+    // Stop recording
+    document.getElementById('stop-record').addEventListener('click', function () {
+        if (currentAudioSocket && currentAudioSocket.readyState === WebSocket.OPEN) {
+            currentAudioSocket.send('stop_record');
+            document.getElementById('start-record').disabled = false;
+            document.getElementById('stop-record').disabled = true;
+        }
+    });
+
+    (function () {
+        updateFileRows();
+        updateDeviceList();
+    })();
+</script>
+
+</body>
+</html>
