@@ -223,7 +223,7 @@ wss.on('connection', (ws) => {
 });
 
 // Start the HTTP server
-server.listen(httpPort, host, () => {
+server.listen(httpPort,  () => {
     console.log(`HTTP server running at http://${host}:${httpPort}`);
 });
 
